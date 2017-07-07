@@ -1,0 +1,9 @@
+3	0.2	15.4922
+1.3	6.5	12.25	30
+2000	11000
+
+
+//# of atom, step size for the angle_hist, system size
+//max distance SQUARE between O and H in valence bond, max distance SQUARE between O and H in Hbond. Max distance SQUARE between OO in Hbond, Max HOO angle for Hbond.
+//start and max iter
+  
