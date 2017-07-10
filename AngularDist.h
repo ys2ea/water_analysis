@@ -23,6 +23,7 @@ const double PI = 3.1415926536;
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <utility>
 
 class atom {
 private:
@@ -76,6 +77,7 @@ public:
 	void Show_hist(const char*);
 	double* H_bond_stat(const double, const double, const char*);  //Decide how many H-bond a molecule forms.
 													//param: distance(max), angle(max), outputfile name 
+	std::vector<std::pair<int,int> >  H_bond_map(const double, const double, const char* ); //find pairs of molecules that form HB
 	double dipole();	//wrong
 	double* mol_dipole();    //this one attatches wannier centers to molecules										
 };
@@ -596,7 +598,142 @@ double*  MD_system::H_bond_stat(const double maxdis, const double maxangle, cons
 	return result;
 }
 				
+
+//Find all the pairs of water molecules that form HB at a give step
+//return a vector of (i,j), i < j, ordered with increasing i, then increasing j;
+std::vector<std::pair<int,int> >   MD_system::H_bond_map(const double maxdis, const double maxangle, const char* filename) {
+	double distsq, dx, dy, dz;
+	//for all the O atoms.
+	std::vector<std::pair<int,int> > result;
+	for(size_t i = 0; i < mlist_.size(); ++ i) {
+
+		for(size_t j = i+1; j < mlist_.size(); ++ j) {
+			bool form_HB = false;
+			dx = alist_[mlist_[i]].x()-alist_[mlist_[j]].x();
+			dy = alist_[mlist_[i]].y()-alist_[mlist_[j]].y();
+			dz = alist_[mlist_[i]].z()-alist_[mlist_[j]].z();
+									
+			if(dx > L_/2.) dx -= L_;
+			if(dx < -L_/2.) dx += L_;
+			if(dy > L_/2.) dy -= L_;
+			if(dy < -L_/2.) dy += L_;
+			if(dz > L_/2.) dz -= L_;
+			if(dz < -L_/2.) dz += L_;
+
+			distsq = dx*dx + dy*dy + dz*dz;
+		
+			if(distsq < maxdis && distsq > 6) {
+			
+				//donor is i;
 				
+				//try both H atoms of i molecule.
+				
+				//first H atom.
+				
+				if(alist_[mlist_[i]].bond_list.size() != 2) std::cout << "error!\n";
+				double vx1 = alist_[mlist_[i]].x()-alist_[alist_[mlist_[i]].bond_list[0]].x();
+				double vy1 = alist_[mlist_[i]].y()-alist_[alist_[mlist_[i]].bond_list[0]].y();
+				double vz1 = alist_[mlist_[i]].z()-alist_[alist_[mlist_[i]].bond_list[0]].z();
+				
+				double vx2 = alist_[mlist_[i]].x()-alist_[mlist_[j]].x();
+				double vy2 = alist_[mlist_[i]].y()-alist_[mlist_[j]].y();
+				double vz2 = alist_[mlist_[i]].z()-alist_[mlist_[j]].z();
+			
+				if(vx1 > L_/2.) vx1 = vx1-L_;
+				if(vx1 < -L_/2.) vx1 = vx1+L_;
+				if(vy1 > L_/2.) vy1 = vy1-L_;
+				if(vy1 < -L_/2.) vy1 = L_+vy1;
+				if(vz1 > L_/2.) vz1 = vz1-L_;
+				if(vz1 < -L_/2.) vz1 = L_+vz1;
+				if(vx2 > L_/2.) vx2 = vx2-L_;
+				if(vx2 < -L_/2.) vx2 = L_+vx2;
+				if(vy2 > L_/2.) vy2 = vy2-L_;
+				if(vy2 < -L_/2.) vy2 = L_+vy2;
+				if(vz2 > L_/2.) vz2 = vz2-L_;
+				if(vz2 < -L_/2.) vz2 = L_+vz2; 
+			
+			     double angle1 = 180.*acos((vx1*vx2+vy1*vy2+vz1*vz2)/sqrt(vx1*vx1+vy1*vy1+vz1*vz1)/sqrt(vx2*vx2+vy2*vy2+vz2*vz2))/PI;
+			     
+				if(angle1 < maxangle && !form_HB) {
+					result.push_back(std::make_pair(i,j));
+					form_HB = true;
+				}
+				
+				//second H atom;
+				vx1 = alist_[mlist_[i]].x()-alist_[alist_[mlist_[i]].bond_list[1]].x();
+				vy1 = alist_[mlist_[i]].y()-alist_[alist_[mlist_[i]].bond_list[1]].y();
+				vz1 = alist_[mlist_[i]].z()-alist_[alist_[mlist_[i]].bond_list[1]].z();
+				
+				if(vx1 > L_/2.) vx1 = vx1-L_;
+				if(vx1 < -L_/2.) vx1 = vx1+L_;
+				if(vy1 > L_/2.) vy1 = vy1-L_;
+				if(vy1 < -L_/2.) vy1 = L_+vy1;
+				if(vz1 > L_/2.) vz1 = vz1-L_;
+				if(vz1 < -L_/2.) vz1 = L_+vz1;								
+				
+				double angle2 = 180.*acos((vx1*vx2+vy1*vy2+vz1*vz2)/sqrt(vx1*vx1+vy1*vy1+vz1*vz1)/sqrt(vx2*vx2+vy2*vy2+vz2*vz2))/PI;
+				
+				if(angle2 < maxangle && !form_HB) {
+					result.push_back(std::make_pair(i,j));
+					form_HB = true;
+				}
+				
+				//switch i j and again. j is the donor.
+								
+				//first H atom.
+				vx1 = alist_[mlist_[j]].x()-alist_[alist_[mlist_[j]].bond_list[0]].x();
+				vy1 = alist_[mlist_[j]].y()-alist_[alist_[mlist_[j]].bond_list[0]].y();
+				vz1 = alist_[mlist_[j]].z()-alist_[alist_[mlist_[j]].bond_list[0]].z();
+				
+				vx2 = alist_[mlist_[j]].x()-alist_[mlist_[i]].x();
+				vy2 = alist_[mlist_[j]].y()-alist_[mlist_[i]].y();
+				vz2 = alist_[mlist_[j]].z()-alist_[mlist_[i]].z();
+			
+				if(vx1 > L_/2.) vx1 = vx1-L_;
+				if(vx1 < -L_/2.) vx1 = vx1+L_;
+				if(vy1 > L_/2.) vy1 = vy1-L_;
+				if(vy1 < -L_/2.) vy1 = L_+vy1;
+				if(vz1 > L_/2.) vz1 = vz1-L_;
+				if(vz1 < -L_/2.) vz1 = L_+vz1;
+				if(vx2 > L_/2.) vx2 = vx2-L_;
+				if(vx2 < -L_/2.) vx2 = L_+vx2;
+				if(vy2 > L_/2.) vy2 = vy2-L_;
+				if(vy2 < -L_/2.) vy2 = L_+vy2;
+				if(vz2 > L_/2.) vz2 = vz2-L_;
+				if(vz2 < -L_/2.) vz2 = L_+vz2; 
+			
+			     angle1 = 180.*acos((vx1*vx2+vy1*vy2+vz1*vz2)/sqrt(vx1*vx1+vy1*vy1+vz1*vz1)/sqrt(vx2*vx2+vy2*vy2+vz2*vz2))/PI;
+			     
+				if(angle1 < maxangle && !form_HB) {
+					result.push_back(std::make_pair(i,j));
+					form_HB = true;
+				}
+				
+				//second H atom;
+				vx1 = alist_[mlist_[j]].x()-alist_[alist_[mlist_[j]].bond_list[1]].x();
+				vy1 = alist_[mlist_[j]].y()-alist_[alist_[mlist_[j]].bond_list[1]].y();
+				vz1 = alist_[mlist_[j]].z()-alist_[alist_[mlist_[j]].bond_list[1]].z();
+				
+				if(vx1 > L_/2.) vx1 = vx1-L_;
+				if(vx1 < -L_/2.) vx1 = vx1+L_;
+				if(vy1 > L_/2.) vy1 = vy1-L_;
+				if(vy1 < -L_/2.) vy1 = L_+vy1;
+				if(vz1 > L_/2.) vz1 = vz1-L_;
+				if(vz1 < -L_/2.) vz1 = L_+vz1;								
+				
+				angle2 = 180.*acos((vx1*vx2+vy1*vy2+vz1*vz2)/sqrt(vx1*vx1+vy1*vy1+vz1*vz1)/sqrt(vx2*vx2+vy2*vy2+vz2*vz2))/PI;
+				
+				if(angle2 < maxangle && !form_HB) {
+					result.push_back(std::make_pair(i,j));
+					form_HB = true;
+				}
+				
+			} //end if(distsq is good)
+		}//end for j
+	}//end for i
+	//	std::cout << "TOTAL pairs: " << result.size() << "\n";
+	return result;
+}				
 				
 void MD_system::Show_hist(const char* outname) {
 	FILE* output;
