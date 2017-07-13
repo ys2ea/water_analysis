@@ -67,6 +67,7 @@ private:
 	std::vector<int> Ahist_;
 	double L_;	//assume cubic symmetry
 	double step_;
+	int hcount;		//count the total # of h-bond like events
 public:
 	MD_system(const int, const double, const double);
 	void init_read(const std::string &, const int);	//initial read, which create all the atoms
@@ -132,6 +133,7 @@ MD_system::MD_system(const int na, const double step, const double L) {
 	Ahist_.resize(int(90./step));
 	std::fill(Ahist_.begin(), Ahist_.end(), 0);
 	L_ = L;
+	hcount = 0;
 }
 
 void MD_system::init_read(const std::string &line, const int idx) {
@@ -170,11 +172,11 @@ void MD_system::decide_molecule(double bl) {
 				double dz = alist_[i].z()-alist_[j].z();
 			
 				if(dx > L_/2.) dx = L_-dx;
-				if(dx < -L_/2.) dx = L_+dx;
+				else if(dx < -L_/2.) dx = L_+dx;
 				if(dy > L_/2.) dy = L_-dy;
-				if(dy < -L_/2.) dy = L_+dy;
+				else if(dy < -L_/2.) dy = L_+dy;
 				if(dz > L_/2.) dz = L_-dz;
-				if(dz < -L_/2.) dz = L_+dz;
+				else if(dz < -L_/2.) dz = L_+dz;
 									 
 				dist = dx*dx + dy*dy + dz*dz;
 				  
@@ -196,9 +198,6 @@ void MD_system::decide_molecule(double bl) {
 		//std::cout << "(" << alist_[i].type() << "," << alist_[i].bond_list.size() << ")\n";
 		
 	}
-	
-	
-	//attatch wannier centers to the molecules
 }
 
 //poorly written, just want it to work.
@@ -243,22 +242,22 @@ void MD_system::fill_Ahist(double bsq1, double bsq2) {
 					double vz2 = -alist_[alist_[j].bond_list[0]].z()+alist_[j].z(); */
 					
 					if(vx1 > L_/2.) vx1 = vx1-L_;
-					if(vx1 < -L_/2.) vx1 = vx1+L_;
+					else if(vx1 < -L_/2.) vx1 = vx1+L_;
 					if(vy1 > L_/2.) vy1 = vy1-L_;
-					if(vy1 < -L_/2.) vy1 = L_+vy1;
+					else if(vy1 < -L_/2.) vy1 = L_+vy1;
 					if(vz1 > L_/2.) vz1 = vz1-L_;
-					if(vz1 < -L_/2.) vz1 = L_+vz1;
+					else if(vz1 < -L_/2.) vz1 = L_+vz1;
 					if(vx2 > L_/2.) vx2 = vx2-L_;
-					if(vx2 < -L_/2.) vx2 = L_+vx2;
+					else if(vx2 < -L_/2.) vx2 = L_+vx2;
 					if(vy2 > L_/2.) vy2 = vy2-L_;
-					if(vy2 < -L_/2.) vy2 = L_+vy2;
+					else if(vy2 < -L_/2.) vy2 = L_+vy2;
 					if(vz2 > L_/2.) vz2 = vz2-L_;
-					if(vz2 < -L_/2.) vz2 = L_+vz2; 
+					else if(vz2 < -L_/2.) vz2 = L_+vz2; 
 					
 					double angle = 180.*acos((vx1*vx2+vy1*vy2+vz1*vz2)/sqrt(vx1*vx1+vy1*vy1+vz1*vz1)/sqrt(vx2*vx2+vy2*vy2+vz2*vz2))/PI;
-					
-					if(angle>0. && angle<90.)
-					Ahist_[int(angle/step_)] ++;
+
+					if(angle>0. && angle<90.) {
+					Ahist_[int(angle/step_)] ++; hcount ++; }
 				}
 				
 				else if(alist_[i].type() == 'H' && alist_[j].type() == 'O') {
@@ -281,23 +280,23 @@ void MD_system::fill_Ahist(double bsq1, double bsq2) {
 					double vz2 = alist_[j].z()-alist_[i].z(); */
 					
 					if(vx1 > L_/2.) vx1 = vx1-L_;
-					if(vx1 < -L_/2.) vx1 = vx1+L_;
+					else if(vx1 < -L_/2.) vx1 = vx1+L_;
 					if(vy1 > L_/2.) vy1 = vy1-L_;
-					if(vy1 < -L_/2.) vy1 = L_+vy1;
+					else if(vy1 < -L_/2.) vy1 = L_+vy1;
 					if(vz1 > L_/2.) vz1 = vz1-L_;
-					if(vz1 < -L_/2.) vz1 = L_+vz1;
+					else if(vz1 < -L_/2.) vz1 = L_+vz1;
 					if(vx2 > L_/2.) vx2 = vx2-L_;
-					if(vx2 < -L_/2.) vx2 = L_+vx2;
+					else if(vx2 < -L_/2.) vx2 = L_+vx2;
 					if(vy2 > L_/2.) vy2 = vy2-L_;
-					if(vy2 < -L_/2.) vy2 = L_+vy2;
+					else if(vy2 < -L_/2.) vy2 = L_+vy2;
 					if(vz2 > L_/2.) vz2 = vz2-L_;
-					if(vz2 < -L_/2.) vz2 = L_+vz2; 
+					else if(vz2 < -L_/2.) vz2 = L_+vz2; 
 					
 					
 					double angle = 180.*acos((vx1*vx2+vy1*vy2+vz1*vz2)/sqrt(vx1*vx1+vy1*vy1+vz1*vz1)/sqrt(vx2*vx2+vy2*vy2+vz2*vz2))/PI;
-					
-					if(angle>0. && angle<90.)
-					Ahist_[int(angle/step_)] ++;				
+
+					if(angle>0. && angle<90.) {
+					Ahist_[int(angle/step_)] ++; hcount ++; }				
 				}
 			}
 		}
@@ -739,6 +738,6 @@ void MD_system::Show_hist(const char* outname) {
 	FILE* output;
 	output = fopen(outname, "w");
 	for(size_t i = 0; i < Ahist_.size(); i ++) 
-		fprintf(output, "%lf\t%d\n", i*step_, Ahist_[i]);
+		fprintf(output, "%lf\t%lf\n", i*step_, double(Ahist_[i])/double(hcount));
 }
 #endif
